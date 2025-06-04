@@ -2,6 +2,7 @@ import { execSync } from "child_process";
 import path = require("path");
 import color = require("color");
 import * as vscode from "vscode";
+import * as fs from "fs";
 
 const DEFAULT_HEAT_COLOUR = color.rgb(200, 0, 0);
 const DEFAULT_HEAT_LEVELS = 10;
@@ -111,6 +112,30 @@ function updateVisibleHeatmaps() {
   });
 }
 
+// Returns "git", "perforce", or undefined
+function detectVcsType(filePath: string): "git" | "perforce" | undefined {
+  let dir = path.dirname(filePath);
+
+  // Check for .git directory
+  let current = dir;
+  while (current !== path.parse(current).root) {
+    if (fs.existsSync(path.join(current, ".git"))) {
+      return "git";
+    }
+    if (fs.existsSync(path.join(current, ".p4config"))) {
+      return "perforce";
+    }
+    current = path.dirname(current);
+  }
+
+  // Check environment variable for Perforce
+  if (process.env.P4CONFIG) {
+    return "perforce";
+  }
+
+  return undefined;
+}
+
 function updateHeatmapForEditor(editor: vscode.TextEditor) {
   // clear whatever was already there
   heatStyles.forEach((style) => editor.setDecorations(style, []));
@@ -133,6 +158,20 @@ function updateHeatmapForEditor(editor: vscode.TextEditor) {
   // Bucket each line range by age:
   const document = editor.document;
   //const lineTimes = getGitTimestampsForLines(document);
+
+   // Detect VCS type for the current file
+  const vcsType = detectVcsType(document.uri.fsPath);
+  if(vcsType == "git"){
+
+  }else if(vcsType == "perforce") {
+
+  }else {
+    vscode.window.showErrorMessage(
+      "Heatmap: Unsupported version control system. Only Git and Perforce are supported."
+    );
+    return;
+  }
+  
   const lineCounts = getGitModificationCounts(document);
   //if (lineTimes === undefined || lineTimes.length === 0) {
   if (lineCounts === undefined || lineCounts.length === 0) {
@@ -220,6 +259,18 @@ function toggleHeatmap() {
   updateVisibleHeatmaps();
 }
 
+function showVcsTypeForActiveEditor() {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    vscode.window.showInformationMessage("No active editor.");
+    return;
+  }
+  const filePath = editor.document.uri.fsPath;
+  const vcsType = detectVcsType(filePath);
+  vscode.window.showInformationMessage(`VCS Type: ${vcsType ?? "none"}`);
+}
+
+
 function buildDecorations() {
   const config = vscode.workspace.getConfiguration("heatmap");
   const heatLevels = config.get<number>("heatLevels") || DEFAULT_HEAT_LEVELS;
@@ -283,6 +334,9 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand("heatmap.toggle", () => {
       toggleHeatmap();
+    }),
+     vscode.commands.registerCommand("heatmap.showVcsType", () => {
+      showVcsTypeForActiveEditor();
     }),
   ];
 
