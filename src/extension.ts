@@ -200,7 +200,19 @@ function updateHeatmapForEditor(editor: vscode.TextEditor) {
       continue;
     }
 
-    const bucket = Math.floor((lineTime - minTime) / timePerLevel);
+    const config = vscode.workspace.getConfiguration("heatmap");
+    const mode = config.get<string>("mode", "absolute"); // "absolute" or "relative"
+
+    let bucket: number;
+
+    if(mode === "relative") {
+
+    } else{
+
+    }
+
+    bucket = Math.floor((lineTime - minTime) / timePerLevel);
+    
 
     //ranges[bucket].push(range);
     decorations[bucket].push({
@@ -270,6 +282,23 @@ function showVcsTypeForActiveEditor() {
   vscode.window.showInformationMessage(`VCS Type: ${vcsType ?? "none"}`);
 }
 
+function setModeAbsolute() {
+  vscode.workspace.getConfiguration("heatmap").update("mode", "absolute", true);
+  vscode.window.showInformationMessage("Heatmap mode set to Absolute.");
+  updateVisibleHeatmaps();
+}
+
+function setModeRelative() {
+  vscode.workspace.getConfiguration("heatmap").update("mode", "relative", true);
+  vscode.window.showInformationMessage("Heatmap mode set to Relative.");
+  updateVisibleHeatmaps();
+}
+
+function showCurrentMode() {
+  const config = vscode.workspace.getConfiguration("heatmap");
+  const mode = config.get<string>("mode", "absolute");
+  vscode.window.showInformationMessage(`Current Heatmap Mode: ${mode}`);
+}
 
 function buildDecorations() {
   const config = vscode.workspace.getConfiguration("heatmap");
@@ -337,6 +366,15 @@ export function activate(context: vscode.ExtensionContext) {
     }),
      vscode.commands.registerCommand("heatmap.showVcsType", () => {
       showVcsTypeForActiveEditor();
+    }),
+    vscode.commands.registerCommand("heatmap.setModeAbsolute", () => {
+      setModeAbsolute();
+    }),
+    vscode.commands.registerCommand("heatmap.setModeRelative", () => {
+      setModeRelative();
+    }),
+    vscode.commands.registerCommand("heatmap.showCurrentMode", () => {
+      showCurrentMode();
     }),
   ];
 
