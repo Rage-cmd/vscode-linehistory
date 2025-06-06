@@ -41,6 +41,22 @@
       {
         "command": "heatmap.toggle",
         "title": "Heatmap: Toggle"
+      },
+      {
+        "command": "heatmap.showVcsType",
+        "title": "Heatmap: Show VCS Type"
+      },
+      {
+        "command": "heatmap.setModeAbsolute",
+        "title": "Heatmap: Set Mode Absolute"
+      },
+      {
+        "command": "heatmap.setModeRelative",
+        "title": "Heatmap: Set Mode Relative"
+      },
+      {
+      "command": "heatmap.showCurrentMode",
+      "title": "Heatmap: Show Current Mode"
       }
     ],
     "configuration": {
@@ -65,6 +81,12 @@
           "type": "boolean",
           "default": true,
           "description": "When the heatmap is switched on, also show it in the overview ruler."
+        },
+        "heatmap.mode": {
+        "type": "string",
+        "enum": ["absolute", "relative"],
+        "default": "absolute",
+        "description": "Choose between absolute or relative heatmap coloring."
         }
       }
     }
