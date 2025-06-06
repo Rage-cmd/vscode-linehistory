@@ -2,6 +2,7 @@ import { execSync } from 'child_process';
 import path = require('path');
 import color = require('color');
 import * as vscode from 'vscode';
+import * as fs from "fs";
 
 
 const DEFAULT_HEAT_COLOUR = color.rgb(200, 0,0 );
@@ -146,6 +147,29 @@ function updateVisibleHeatmaps(){
     });
 }
 
+function detectVcsType(filePath: string): "git" | "perforce" | undefined {
+  let dir = path.dirname(filePath);
+
+  // Check for .git directory
+  let current = dir;
+  while (current !== path.parse(current).root) {
+    if (fs.existsSync(path.join(current, ".git"))) {
+      return "git";
+    }
+    if (fs.existsSync(path.join(current, ".p4config"))) {
+      return "perforce";
+    }
+    current = path.dirname(current);
+  }
+
+  // Check environment variable for Perforce
+  if (process.env.P4CONFIG) {
+    return "perforce";
+  }
+
+  return undefined;
+}
+
 function updateHeatmapForEditor(editor:vscode.TextEditor){
     // Clear any existing decorations to avoid overlap or stale highlights
     heatStyles.forEach(style => editor.setDecorations(style, []));
@@ -167,11 +191,34 @@ function updateHeatmapForEditor(editor:vscode.TextEditor){
 
     // Get the calculated age scores and display numbers for each line
     const document = editor.document;
+    // Detect VCS type for the current file
+    const vcsType = detectVcsType(document.uri.fsPath);
+    if(vcsType == "git"){
+      
+    }else if(vcsType == "perforce") {
+
+    }else {
+      vscode.window.showErrorMessage(
+      "Heatmap: Unsupported version control system. Only Git and Perforce are supported."
+    );
+    return;
+    }
     const lineInfos = getGitLineInfo(document); // Call the new function
 
     // If we couldn't get age data, stop here
     if (lineInfos === undefined || lineInfos.length === 0) {
         return;
+    }
+
+    const config = vscode.workspace.getConfiguration("heatmap");
+    const mode = config.get<string>("mode", "absolute"); // "absolute" or "relative"
+
+    let bucket: number;
+
+    if(mode === "relative") {
+
+    } else{
+
     }
 
     // Iterate through each line, get its age score, and prepare decoration options
@@ -261,6 +308,35 @@ function toggleHeatmap(){
 	updateVisibleHeatmaps();
 }
 
+function showVcsTypeForActiveEditor() {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    vscode.window.showInformationMessage("No active editor.");
+    return;
+  }
+  const filePath = editor.document.uri.fsPath;
+  const vcsType = detectVcsType(filePath);
+  vscode.window.showInformationMessage(`VCS Type: ${vcsType ?? "none"}`);
+}
+
+function setModeAbsolute() {
+  vscode.workspace.getConfiguration("heatmap").update("mode", "absolute", true);
+  vscode.window.showInformationMessage("Heatmap mode set to Absolute.");
+  updateVisibleHeatmaps();
+}
+
+function setModeRelative() {
+  vscode.workspace.getConfiguration("heatmap").update("mode", "relative", true);
+  vscode.window.showInformationMessage("Heatmap mode set to Relative.");
+  updateVisibleHeatmaps();
+}
+
+function showCurrentMode() {
+  const config = vscode.workspace.getConfiguration("heatmap");
+  const mode = config.get<string>("mode", "absolute");
+  vscode.window.showInformationMessage(`Current Heatmap Mode: ${mode}`);
+}
+
 function buildDecorations(){
 	const config = vscode.workspace.getConfiguration('heatmap');
 	const heatLevels = config.get<number>('heatLevels') || DEFAULT_HEAT_LEVELS;
@@ -308,7 +384,11 @@ export function activate(context: vscode.ExtensionContext) {
 	let commands = [
 		vscode.commands.registerCommand('heatmap.enable', () => { setHeatmapEnabled(true); }),
 		vscode.commands.registerCommand('heatmap.disable', () => { setHeatmapEnabled(false); }),
-		vscode.commands.registerCommand('heatmap.toggle', () => { toggleHeatmap(); })
+		vscode.commands.registerCommand('heatmap.toggle', () => { toggleHeatmap(); }),
+    vscode.commands.registerCommand("heatmap.showVcsType", () => { showVcsTypeForActiveEditor(); }),
+    vscode.commands.registerCommand("heatmap.setModeAbsolute", () => { setModeAbsolute(); }),
+    vscode.commands.registerCommand("heatmap.setModeRelative", () => { setModeRelative(); }),
+    vscode.commands.registerCommand("heatmap.showCurrentMode", () => { showCurrentMode(); }),
 	];
 
 	commands.forEach(cmd => context.subscriptions.push(cmd));
