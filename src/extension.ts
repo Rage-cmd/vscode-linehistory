@@ -23,8 +23,8 @@ var enabledForFiles = new Set();
  * 					* "#RGB", where R, G, B are the color components in
  * 						hexadecimal. e.g. "#f00"
  * @param default_ The color object to return if the string couldn't be converted.
- * @returns A color object.
- */
+ * @returns A color object.*/
+
 function colorFromString(colorStr: string, default_: color): color {
   colorStr = colorStr.replace(/\s/g, ""); // remove all (including inner) whitespace
 
@@ -41,46 +41,6 @@ function colorFromString(colorStr: string, default_: color): color {
   return default_;
 }
 
-/*function getGitTimestampsForLines(document: vscode.TextDocument): undefined | number[] {
-	const filePath = document.uri.fsPath;
-	const fileDir = path.dirname(filePath);
-	const escapedFilePath = filePath.replace(/(["'$`\\])/g, '\\$1');
-	const timestamps: number[] = new Array(document.lineCount);
-	const hashCache: {[key: string]: number} = {};
-
-	try {
-		// TODO: Maybe use a better exec option to stream the output?
-		const blameOutput = execSync(`git blame -p "${escapedFilePath}"`, { cwd: fileDir }).toString();
-		const lines = blameOutput.split('\n');
-		let currentHash: string = '0000000000000000000000000000000000000000';
-
-		// 1. Collect the hash -> timestamps:
-		for (let i = 0; i < lines.length; ++i) {
-			const match = lines[i].match(/^([0-9a-f]{40}) \d+ \d+/);
-
-			if (match) {
-				currentHash = match[1];
-			} else if (lines[i].startsWith('committer-time ')) {
-				hashCache[currentHash] = parseInt(lines[i].split(' ')[1]);
-			}
-		}
-
-		// 2. Map the lines:
-		for (let i = 0; i < lines.length; ++i) {
-			const match = lines[i].match(/^([0-9a-f]{40}) \d+ (\d+)/);
-			if (match) {
-				const line = parseInt(match[2]);
-				timestamps[line - 1] = hashCache[match[1]];
-			}
-		}
-	}
-	catch (_) {
-		return undefined;
-	}
-
-	return timestamps;
-}*/
-
 function getGitModificationCounts(
   document: vscode.TextDocument
 ): number[] | undefined {
@@ -88,17 +48,42 @@ function getGitModificationCounts(
   const fileDir = path.dirname(filePath);
   const lineCounts: number[] = new Array(document.lineCount).fill(0);
 
-  for (let i = 1; i <= document.lineCount; i++) {
-    try {
-      const output = execSync(`git log -L ${i},${i}:${filePath}`, {
-        cwd: fileDir,
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "ignore"],
-      });
-      const count = (output.match(/^commit/gm) || []).length;
-      lineCounts[i - 1] = count;
-    } catch {
-      lineCounts[i - 1] = 0;
+  let gitDiff = "";
+  try {
+    // Follow history even through renames
+    gitDiff = execSync(`git log --follow -p -- "${filePath}"`, {
+      cwd: fileDir,
+      encoding: "utf-8",
+      stdio: "pipe",
+      maxBuffer: 1024 * 1024 * 10, // Increase buffer in case of long file history
+    });
+  } catch (err) {
+    console.error("Failed to run git log -p:", err);
+    return undefined;
+  }
+
+  // Match each diff hunk: @@ -a,b +c,d @@
+  const hunkRegex =
+    /@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@([\s\S]*?)(?=^@@|\Z|^commit)/gm;
+
+  let match;
+  while ((match = hunkRegex.exec(gitDiff)) !== null) {
+    const startLine = parseInt(match[1], 10);
+    const hunkBody = match[3].split("\n");
+
+    let lineNum = startLine;
+
+    for (const line of hunkBody) {
+      if (line.startsWith("+") && !line.startsWith("+++")) {
+        // Added or modified line
+        if (lineNum - 1 < lineCounts.length) {
+          lineCounts[lineNum - 1] += 1;
+        }
+        lineNum++;
+      } else if (!line.startsWith("-") && !line.startsWith("---")) {
+        // Unchanged line, advance pointer
+        lineNum++;
+      }
     }
   }
 
@@ -149,6 +134,15 @@ function updateHeatmapForEditor(editor: vscode.TextEditor) {
     return;
   }
 
+  // Use logarithmic scaling for better color distribution
+  //   const logMin = Math.log(minTime + 1);
+  //   const logMax = Math.log(maxTime + 1);
+  //   const logRange = logMax - logMin;
+
+  //   if (logRange === 0) {
+  //     return;
+  //   }
+
   const timePerLevel = (timeRange + heatStyles.length - 1) / heatStyles.length;
 
   for (let i = 0; i < document.lineCount; ++i) {
@@ -161,6 +155,12 @@ function updateHeatmapForEditor(editor: vscode.TextEditor) {
       continue;
     }
 
+    // Logarithmic bucket calculation
+    // const logValue = Math.log(lineTime + 1);
+    // const bucket = Math.floor(
+    //   ((logValue - logMin) / logRange) * (heatStyles.length - 1)
+    // );
+
     const bucket = Math.floor((lineTime - minTime) / timePerLevel);
 
     //ranges[bucket].push(range);
@@ -170,9 +170,6 @@ function updateHeatmapForEditor(editor: vscode.TextEditor) {
         before: {
           contentText: " ",
           backgroundColor: heatStyles[bucket] ? heatStyles[bucket] : undefined,
-          //margin: "0 5px 0 0",
-          //width: "100%",
-          //height: "100%",
         },
         after: {
           contentText: ` (${lineCounts[i]})`,
