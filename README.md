@@ -13,7 +13,7 @@ This extension provides tools for visualizing and understanding the history of y
 - **Toggle Modes:**  
   Switch between "relative age" and "absolute modification count" modes.
 - **Per-line Details:**  
-  Hover or view beside each line how many times it has changed (in absolute mode) or its age rank (in relative mode).
+  Hover or view beside each line how many times it has changed (in line commit frequency mode) or its age rank (in age based mode).
 - **Command Palette Integration:**  
   Easily enable, disable, or toggle the visualization from the command palette.
 - **Customizable Colors and Levels:**  
@@ -26,8 +26,7 @@ This extension provides tools for visualizing and understanding the history of y
 
 ## Installation
 
-Install through the Visual Studio Code Marketplace:  
-https://marketplace.visualstudio.com/items?itemName=chrisjdavies.heatmap
+
 
 ## Example
 
@@ -38,8 +37,8 @@ This extension adds the following commands to the command palette:
 - **Line History: On** — Enable the visualization for the current file.
 - **Line History: Off** — Disable the visualization for the current file.
 - **Line History: Toggle** — Toggle the visualization on/off.
-- **Line History: Set Mode (Absolute)** — Show modification counts per line.
-- **Line History: Set Mode (Relative)** — Show relative age per line.
+- **Line History: Set Mode (Line Commit Frequency)** — Show modification counts per line based on commit frequency.
+- **Line History: Set Mode (Age)** — Show relative age per line.
 - **Line History: Show VCS Type** — Show which version control system is detected for the current file.
 
 ## Configuration
@@ -50,7 +49,7 @@ This extension adds the following commands to the command palette:
 |`heatmap.heatColour`|The color of the "hottest" heat level (most recent changes), as a list of numbers R, G, B, or a hex color code.|String|`200,0,0` or `#C80000`|
 |`heatmap.coolColour`|The color of the "coolest" heat level (oldest changes), as a list of numbers R, G, B, or a hex color code.|String|Same as heatColour, but with 100% alpha|
 |`heatmap.showInRuler`|Whether to show the heatmap in the overview ruler.|Boolean|true|
-|`heatmap.mode`|Which mode to use: `"relative"` (age) or `"absolute"` (modification count).|String|`relative`|
+|`heatmap.mode`|Which mode to use: `"age"` (age) or `"line_commit"` (modification count).|String|`relative`|
 
 ## Use Cases
 
