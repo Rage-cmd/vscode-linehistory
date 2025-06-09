@@ -152,6 +152,28 @@ function getGitLineInfo(document: vscode.TextDocument): undefined | LineInfo[] {
     }
     // console.log("rawLineTimestamps", rawLineTimestamps); // For debugging
 
+    // Compute min and max for normalization
+    /*const timestamps = Object.values(hashCache);
+    const minTimestamp = Math.min(...timestamps);
+    const maxTimestamp = Math.max(...timestamps);
+    const range = maxTimestamp - minTimestamp || 1; // Avoid division by 0
+
+    // Pass 3: Normalize age score from 0 to 1
+    for (let i = 0; i < document.lineCount; ++i) {
+      const timestamp = rawLineTimestamps[i];
+      let ageScore: number;
+
+      if (timestamp === undefined) {
+        // Treat uncommitted lines as newest
+        ageScore = 1.0;
+      } else {
+        ageScore = (timestamp - minTimestamp) / range;
+      }
+
+      const displayNumber = ageScore; // You can choose to round or format if needed
+      lineInfos[i] = { timestamp, ageScore, displayNumber };
+    }*/
+
     // Pass 3: Calculate age score and display number for each line based on rank
     for (let i = 0; i < document.lineCount; ++i) {
       const timestamp = rawLineTimestamps[i];
@@ -213,27 +235,27 @@ function getGitModificationCounts(
 
 /**
  * Updates the heatmap decorations for all visible text editors based on the current mode.
- * This function checks the mode (absolute or relative) and updates each editor accordingly.
+ * This function checks the mode (line_commit or age based) and updates each editor accordingly.
  */
 function updateVisibleHeatmaps() {
   vscode.window.visibleTextEditors.forEach((editor) => {
     const config = vscode.workspace.getConfiguration("heatmap");
-    const mode = config.get<string>("mode", "absolute"); // "absolute" or "relative"
+    const mode = config.get<string>("mode", "line_commit"); // "line_commit" or "age"
 
-    if (mode === "relative") {
-      updateHeatmapForRelativeMode(editor);
-    } else if (mode === "absolute") {
-      updateHeatmapForAbsoluteMode(editor);
+    if (mode === "age") {
+      updateHeatmapForAgeMode(editor);
+    } else if (mode === "line_commit") {
+      updateHeatmapForLineCommitMode(editor);
     }
   });
 }
 
 /**
- * Updates the heatmap for the currently active editor in "relative" mode.
+ * Updates the heatmap for the currently active editor in "age" mode.
  * This mode shows the age of each line based on its last modification time.
  * @param editor The active text editor to update.
  */
-function updateHeatmapForRelativeMode(editor: vscode.TextEditor) {
+function updateHeatmapForAgeMode(editor: vscode.TextEditor) {
   // Clear any existing decorations to avoid overlap or stale highlights
   heatStyles.forEach((style) => editor.setDecorations(style, []));
 
@@ -335,11 +357,11 @@ function updateHeatmapForRelativeMode(editor: vscode.TextEditor) {
 }
 
 /**
- * Updates the heatmap for the currently active editor in "absolute" mode.
+ * Updates the heatmap for the currently active editor in "line_commit" mode.
  * This mode shows the number of times each line has been modified in the VCS.
  * @param editor The active text editor to update.
  */
-function updateHeatmapForAbsoluteMode(editor: vscode.TextEditor) {
+function updateHeatmapForLineCommitMode(editor: vscode.TextEditor) {
   // Clear any existing decorations to avoid overlap or stale highlights
   heatStyles.forEach((style) => editor.setDecorations(style, []));
 
@@ -478,20 +500,20 @@ function showVcsTypeForActiveEditor() {
 }
 
 /**
- * Sets the heatmap mode to "absolute"
+ * Sets the heatmap mode to "line_commit".
  */
-function setModeAbsolute() {
-  vscode.workspace.getConfiguration("heatmap").update("mode", "absolute", true);
-  vscode.window.showInformationMessage("Heatmap mode set to Absolute.");
+function setModeToLineCommit() {
+  vscode.workspace.getConfiguration("heatmap").update("mode", "line_commit", true);
+  vscode.window.showInformationMessage("Heatmap will be shown based on line commit frequency.");
   updateVisibleHeatmaps();
 }
 
 /**
- * Sets the heatmap mode to "relative"
+ * Sets the heatmap mode to "age"
  */
-function setModeRelative() {
-  vscode.workspace.getConfiguration("heatmap").update("mode", "relative", true);
-  vscode.window.showInformationMessage("Heatmap mode set to Relative.");
+function setModeToAge() {
+  vscode.workspace.getConfiguration("heatmap").update("mode", "age", true);
+  vscode.window.showInformationMessage("Heatmap will be shown based on age.");
   updateVisibleHeatmaps();
 }
 
@@ -500,7 +522,7 @@ function setModeRelative() {
  */
 function showCurrentMode() {
   const config = vscode.workspace.getConfiguration("heatmap");
-  const mode = config.get<string>("mode", "absolute");
+  const mode = config.get<string>("mode", "line_commit");
   vscode.window.showInformationMessage(`Current Heatmap Mode: ${mode}`);
 }
 
@@ -571,11 +593,11 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("heatmap.showVcsType", () => {
       showVcsTypeForActiveEditor();
     }),
-    vscode.commands.registerCommand("heatmap.setModeAbsolute", () => {
-      setModeAbsolute();
+    vscode.commands.registerCommand("heatmap.setModeLineCommit", () => {
+      setModeToLineCommit();
     }),
-    vscode.commands.registerCommand("heatmap.setModeRelative", () => {
-      setModeRelative();
+    vscode.commands.registerCommand("heatmap.setModeAge", () => {
+      setModeToAge();
     }),
     vscode.commands.registerCommand("heatmap.showCurrentMode", () => {
       showCurrentMode();

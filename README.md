@@ -31,6 +31,8 @@ https://marketplace.visualstudio.com/items?itemName=chrisjdavies.heatmap
 
 ## Example
 
+![Example heatmap generated with tool](images/screenshot2.png)
+
 ## Commands
 
 This extension adds the following commands to the command palette:

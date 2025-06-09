@@ -47,12 +47,12 @@
         "title": "Heatmap: Show VCS Type"
       },
       {
-        "command": "heatmap.setModeAbsolute",
-        "title": "Heatmap: Set Mode Absolute"
+        "command": "heatmap.setModeLineCommit",
+        "title": "Heatmap: Set Line Commit Frequency mode"
       },
       {
-        "command": "heatmap.setModeRelative",
-        "title": "Heatmap: Set Mode Relative"
+        "command": "heatmap.setModeAge",
+        "title": "Heatmap: Set Age mode"
       },
       {
       "command": "heatmap.showCurrentMode",
@@ -84,9 +84,9 @@
         },
         "heatmap.mode": {
         "type": "string",
-        "enum": ["absolute", "relative"],
-        "default": "absolute",
-        "description": "Choose between absolute or relative heatmap coloring."
+        "enum": ["line_commit", "age"],
+        "default": "age",
+        "description": "Choose between age based or line commit frequency based heatmap coloring."
         }
       }
     }
